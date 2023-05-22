@@ -16,6 +16,10 @@ const SignUpPage = () => {
 
   const handleChange = (event) => {
     const { id, value } = event.target;
+    const errorsCopy = { ...errors };
+
+    delete errorsCopy[id];
+    setErrors(errorsCopy);
 
     setSignUpInfo({
       ...signUpInfo,
@@ -29,6 +33,7 @@ const SignUpPage = () => {
     if (password && passwordRepeat) {
       disabled = password !== passwordRepeat;
     }
+
     return disabled;
   };
 
@@ -76,46 +81,32 @@ const SignUpPage = () => {
               help={errors.username}
             />
 
-            <div className="mb-3">
-              <label htmlFor="email" className="form-label">
-                Email
-              </label>
-              <input
-                id="email"
-                type="text"
-                className="form-control"
-                placeholder="Email"
-                onChange={handleChange}
-              />
-              <span>{errors.email}</span>
-            </div>
+            <Input
+              id="email"
+              label="Email"
+              onChange={handleChange}
+              help={errors.email}
+            />
 
-            <div>
-              <label htmlFor="password" className="form-label">
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                className="form-control"
-                placeholder="Password"
-                onChange={handleChange}
-              />
-              <span>{errors.password}</span>
-            </div>
+            <Input
+              id="password"
+              label="Password"
+              type="password"
+              onChange={handleChange}
+              help={errors.password}
+            />
 
-            <div className="mb-3">
-              <label htmlFor="passwordRepeat" className="form-label">
-                Password Repeat
-              </label>
-              <input
-                id="passwordRepeat"
-                type="password"
-                className="form-control"
-                placeholder="Password"
-                onChange={handleChange}
-              />
-            </div>
+            <Input
+              id="passwordRepeat"
+              label="Password Repeat"
+              type="password"
+              onChange={handleChange}
+              help={
+                signUpInfo.password !== signUpInfo.passwordRepeat
+                  ? "Password mismatch"
+                  : ""
+              }
+            />
 
             <div className="text-center">
               <button

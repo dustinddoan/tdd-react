@@ -17,19 +17,6 @@ describe("SignUpPage", () => {
       expect(header).toBeInTheDocument();
     });
 
-    // it('has username input', () => {
-    // 	render(<SignUpPage />);
-    // 	const input = screen.queryByPlaceholderText("Username");
-    // 	expect(input).toBeInTheDocument();
-
-    // })
-
-    // it('has email input', () => {
-    // 	render(<SignUpPage />);
-    // 	const input = screen.queryByPlaceholderText("Email");
-    // 	expect(input).toBeInTheDocument();
-    // })
-
     it("has usernames input", () => {
       render(<SignUpPage />);
       const input = screen.getByLabelText("Username");
@@ -99,13 +86,13 @@ describe("SignUpPage", () => {
       server.resetHandlers();
     });
 
-    let button;
+    let button, username, email, passwordInput, passwordRepeatInput;
     const setup = () => {
       render(<SignUpPage />);
-      const username = screen.getByLabelText("Username");
-      const email = screen.getByLabelText("Email");
-      const passwordInput = screen.getByLabelText("Password");
-      const passwordRepeatInput = screen.getByLabelText("Password Repeat");
+      username = screen.getByLabelText("Username");
+      email = screen.getByLabelText("Email");
+      passwordInput = screen.getByLabelText("Password");
+      passwordRepeatInput = screen.getByLabelText("Password Repeat");
 
       userEvent.type(username, "user1");
       userEvent.type(email, "user1@gmail.com");
@@ -181,36 +168,35 @@ describe("SignUpPage", () => {
       // await waitForElementToBeRemoved(form);
     });
 
-    it("display validation message for username", async () => {
-      server.use(
-        rest.post("/api/1.0/users", (req, res, ctx) => {
-          return res(
-            ctx.status(400),
-            ctx.json({
-              validationErrors: { username: "Username cannot be null" },
-            })
-          );
-        })
-      );
+    // similar test with different parameters
+    const generateValidationError = (field, message) => {
+      return rest.post("/api/1.0/users", (req, res, ctx) => {
+        return res(
+          ctx.status(400),
+          ctx.json({
+            validationErrors: { [field]: message },
+          })
+        );
+      });
+    };
+    it.each`
+      field         | message
+      ${"username"} | ${"Username cannot be null"}
+      ${"email"}    | ${"E-mail cannot be null"}
+    `("display $message for $field", async (testFields) => {
+      const { field, message } = testFields;
+
+      server.use(generateValidationError(field, message));
 
       setup();
       userEvent.click(button);
-      const validationError = await screen.findByText(
-        "Username cannot be null"
-      );
+      const validationError = await screen.findByText(message);
       expect(validationError).toBeInTheDocument();
     });
 
     it("hide spinner and enable button after api call finish", async () => {
       server.use(
-        rest.post("/api/1.0/users", (req, res, ctx) => {
-          return res(
-            ctx.status(400),
-            ctx.json({
-              validationErrors: { username: "Username cannot be null" },
-            })
-          );
-        })
+        generateValidationError("username", "Username cannot be null")
       );
 
       setup();
@@ -220,5 +206,33 @@ describe("SignUpPage", () => {
       expect(screen.queryByRole("status")).not.toBeInTheDocument();
       expect(button).toBeEnabled();
     });
+
+    it("display mismatch message for password repeat input", () => {
+      setup();
+      userEvent.type(passwordInput, "P4assword");
+      userEvent.type(passwordRepeatInput, "p4assword1");
+      const validationError = screen.queryByText("Password mismatch");
+      expect(validationError).toBeInTheDocument();
+    });
+
+    it.each`
+      field         | message                      | label
+      ${"username"} | ${"Username cannot be null"} | ${"Username"}
+      ${"email"}    | ${"E-mail cannot be null"}   | ${"Email"}
+    `(
+      "clear validation error after username $field is update",
+      async ({ field, message, label }) => {
+        server.use(generateValidationError(field, message, label));
+
+        setup();
+        userEvent.click(button);
+        const validationError = await screen.findByText(message);
+        userEvent.type(screen.getByLabelText(label), "updated");
+
+        await waitFor(() => {
+          expect(validationError).not.toBeInTheDocument();
+        });
+      }
+    );
   });
 });
