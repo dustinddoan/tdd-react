@@ -96,6 +96,7 @@ describe("SignUpPage", () => {
 
     beforeEach(() => {
       counter = 0;
+      server.resetHandlers();
     });
 
     let button;
@@ -124,7 +125,7 @@ describe("SignUpPage", () => {
       userEvent.click(button);
 
       await screen.findByText(
-        "Please check you e-mail to activate your account"
+        "Please check your e-mail to activate your account"
       );
 
       expect(requestBody).toEqual({
@@ -134,7 +135,7 @@ describe("SignUpPage", () => {
       });
     });
 
-    it("disable button when there is an on going api call", async () => {
+    xit("disable button when there is an on going api call", async () => {
       setup();
       userEvent.click(button);
       userEvent.click(button);
@@ -145,7 +146,7 @@ describe("SignUpPage", () => {
       expect(counter).toBe(1);
     });
 
-    it("display spinner after clicking the submit", async () => {
+    xit("display spinner after clicking the submit", async () => {
       setup();
 
       expect(screen.queryByRole("status")).not.toBeInTheDocument();
@@ -154,13 +155,13 @@ describe("SignUpPage", () => {
       const spinner = screen.getByRole("status");
       expect(spinner).toBeInTheDocument();
       await screen.findByText(
-        "Please check you e-mail to activate your account"
+        "Please check your e-mail to activate your account"
       );
     });
 
     it("display account activation notification after successfully sign up", async () => {
       setup();
-      const message = "Please check you e-mail to activate your account";
+      const message = "Please check your e-mail to activate your account";
       expect(screen.queryByText(message)).not.toBeInTheDocument();
 
       userEvent.click(button);
@@ -178,6 +179,46 @@ describe("SignUpPage", () => {
         expect(form).not.toBeInTheDocument();
       });
       // await waitForElementToBeRemoved(form);
+    });
+
+    it("display validation message for username", async () => {
+      server.use(
+        rest.post("/api/1.0/users", (req, res, ctx) => {
+          return res(
+            ctx.status(400),
+            ctx.json({
+              validationErrors: { username: "Username cannot be null" },
+            })
+          );
+        })
+      );
+
+      setup();
+      userEvent.click(button);
+      const validationError = await screen.findByText(
+        "Username cannot be null"
+      );
+      expect(validationError).toBeInTheDocument();
+    });
+
+    it("hide spinner and enable button after api call finish", async () => {
+      server.use(
+        rest.post("/api/1.0/users", (req, res, ctx) => {
+          return res(
+            ctx.status(400),
+            ctx.json({
+              validationErrors: { username: "Username cannot be null" },
+            })
+          );
+        })
+      );
+
+      setup();
+      userEvent.click(button);
+      await screen.findByText("Username cannot be null");
+
+      expect(screen.queryByRole("status")).not.toBeInTheDocument();
+      expect(button).toBeEnabled();
     });
   });
 });

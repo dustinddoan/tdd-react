@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
+import Input from "../components/Input";
+
 const SignUpPage = () => {
   const [signUpInfo, setSignUpInfo] = useState({
     username: "",
@@ -8,8 +10,9 @@ const SignUpPage = () => {
     passwordRepeat: "",
   });
 
-  const [apiProgress, setAPIProgress] = useState(false);
+  const [apiProgress, setApiProgress] = useState(false);
   const [signUpSuccess, setSignUpSuccess] = useState(false);
+  const [errors, setErrors] = useState({});
 
   const handleChange = (event) => {
     const { id, value } = event.target;
@@ -30,7 +33,6 @@ const SignUpPage = () => {
   };
 
   const hanldeSubmit = async (e) => {
-    console.log("abc");
     e.preventDefault();
     const { username, email, password } = signUpInfo;
     const body = {
@@ -39,14 +41,23 @@ const SignUpPage = () => {
       password,
     };
 
-    setAPIProgress(true);
+    setApiProgress(true);
 
-    console.log("api: ", apiProgress);
+    // console.log("api: ", apiProgress);
     try {
-      axios.post("/api/1.0/users", body);
-
-      setSignUpSuccess(true);
-    } catch (error) {}
+      let res = await axios.post("/api/1.0/users", body);
+      // console.log("response: ", res);
+      if (res.status === 200) {
+        setApiProgress(false);
+        setSignUpSuccess(true);
+      }
+    } catch (error) {
+      setApiProgress(false);
+      // console.log("error: ", error.response);
+      if (error.response.status === 400) {
+        setErrors(error.response.data.validationErrors);
+      }
+    }
   };
 
   return (
@@ -58,18 +69,12 @@ const SignUpPage = () => {
           </div>
 
           <div className="card-body">
-            <div className="mb-3">
-              <label htmlFor="username" className="form-label">
-                Username
-              </label>
-              <input
-                id="username"
-                type="text"
-                className="form-control"
-                placeholder="Username"
-                onChange={handleChange}
-              />
-            </div>
+            <Input
+              id="username"
+              label="Username"
+              onChange={handleChange}
+              help={errors.username}
+            />
 
             <div className="mb-3">
               <label htmlFor="email" className="form-label">
@@ -82,6 +87,7 @@ const SignUpPage = () => {
                 placeholder="Email"
                 onChange={handleChange}
               />
+              <span>{errors.email}</span>
             </div>
 
             <div>
@@ -95,6 +101,7 @@ const SignUpPage = () => {
                 placeholder="Password"
                 onChange={handleChange}
               />
+              <span>{errors.password}</span>
             </div>
 
             <div className="mb-3">
@@ -111,8 +118,6 @@ const SignUpPage = () => {
             </div>
 
             <div className="text-center">
-              <>{`api progress ${apiProgress}`}</>
-              <>{`signupSuccess ${apiProgress}`}</>
               <button
                 className="btn btn-primary"
                 disabled={comparePassword() || apiProgress}
@@ -132,7 +137,7 @@ const SignUpPage = () => {
       )}
       {signUpSuccess && (
         <div className="alert alert-success mt-3">
-          Please check you e-mail to activate your account
+          Please check your e-mail to activate your account
         </div>
       )}
     </div>
